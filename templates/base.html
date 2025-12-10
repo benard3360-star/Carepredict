@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block title %}Care Transition Prediction{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Inter", "Segoe UI", sans-serif;
+        line-height: 1.6;
+      }
+
+      /* Navigation */
+      .navbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        top: 0;
+        width: 100%;
+        z-index: 1000;
+      }
+      .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 30px;
+      }
+      .logo {
+        color: white;
+        font-size: 1.8em;
+        font-weight: 700;
+        text-decoration: none;
+        padding: 20px 0;
+      }
+      .nav-links {
+        display: flex;
+        list-style: none;
+      }
+      .nav-links li {
+        margin-left: 40px;
+      }
+      .nav-links a {
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1.1em;
+        padding: 20px 0;
+        display: block;
+        transition: all 0.3s;
+        position: relative;
+      }
+      .nav-links a:hover,
+      .nav-links a.active {
+        color: #ffd700;
+      }
+      .nav-links a::after {
+        content: "";
+        position: absolute;
+        bottom: 15px;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background: #ffd700;
+        transition: width 0.3s;
+      }
+      .nav-links a:hover::after,
+      .nav-links a.active::after {
+        width: 100%;
+      }
+
+      /* Main content */
+      .main-content {
+        margin-top: 80px;
+        min-height: calc(100vh - 80px);
+      }
+
+      /* Footer */
+      .footer {
+        background: #2d3748;
+        color: white;
+        text-align: center;
+        padding: 30px;
+        margin-top: 50px;
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-container">
+        <a href="/" class="logo"> CarePredict</a>
+        <ul class="nav-links">
+          <li>
+            <a
+              href="/"
+              class="{% if request.endpoint == 'home' %}active{% endif %}"
+              >Home</a
+            >
+          </li>
+          <li>
+            <a
+              href="/about"
+              class="{% if request.endpoint == 'about' %}active{% endif %}"
+              >About</a
+            >
+          </li>
+          <li>
+            <a
+              href="/predict"
+              class="{% if request.endpoint == 'predict_form' %}active{% endif %}"
+              >Predict</a
+            >
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="main-content">{% block content %}{% endblock %}</main>
+
+    <footer class="footer">
+      <p>
+        &copy;2025 CarePredict. Empowering healthcare workforce planning through
+        AI.
+      </p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
