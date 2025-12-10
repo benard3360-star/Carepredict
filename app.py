@@ -1,4 +1,8 @@
 # app.py
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', message='.*version.*')
+
 from flask import Flask, render_template, request
 import pickle
 import pandas as pd
