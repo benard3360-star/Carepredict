@@ -72,35 +72,89 @@ def result():
         else:
             input_data[feat] = float(val) if val else 0.0
     
-    input_df = pd.DataFrame([input_data], columns=top_features)
+    # Business Rules - Check BEFORE encoding (use original string values)
+    score_features = ['Final Score', 'Practical-Icare', 'Average Attendance', 
+                     'Average Practicals', 'Theory Exam - Icare', 'Hospital Internship Score', 
+                     'Average Cats']
     
-    # Encode categorical features first
-    for col in form_categorical_features:
-        if col in input_df.columns and col in cat_to_encoder_idx:
-            idx = cat_to_encoder_idx[col]
-            input_df[col] = encoders[idx].transform(input_df[col].astype(str))
+    # Check if any score is below 70
+    low_scores = []
+    for feature in score_features:
+        if feature in input_data:
+            score = input_data[feature]
+            if isinstance(score, (int, float)) and score < 70:
+                low_scores.append(feature)
     
-    # Reorder columns to match scaler's expected order
-    scaler_feature_order = scaler.feature_names_in_.tolist()
-    input_df_scaled = input_df[scaler_feature_order]
+    # Check if Final Grade is 'Fail'
+    final_grade_fail = input_data.get('Final Grade') == 'Fail'
     
-    # Scale all features
-    input_df_scaled = pd.DataFrame(scaler.transform(input_df_scaled), columns=scaler_feature_order)
+    # Check course duration requirements
+    course = input_data.get('Course', '')
+    duration = input_data.get('Course Duration Months', 0)
+    duration_fail = False
+    duration_reason = ""
     
-    # Reorder back to top_features order for model
-    input_df = input_df_scaled[top_features]
+    if course == 'Childcare' and float(duration) < 2:
+        duration_fail = True
+        duration_reason = "For Childcare, the minimum training duration should be 2 months which was not met"
+    elif course == 'Eldercare' and float(duration) < 3:
+        duration_fail = True
+        duration_reason = "The minimum training time for Eldercare course is 3 months, which was not met with the caregiver"
     
-    # Predict
-    pred_prob = model.predict_proba(input_df)[:, 1][0]
-    pred = model.predict(input_df)[0]
-
-    probability = round(pred_prob, 4)
-    will_transition = pred == 1
+    # Initialize reasons list
+    failure_reasons = []
+    
+    # Apply business rules in order of severity - DURATION IS HIGHEST PRIORITY
+    
+    if duration_fail:
+        # Duration requirement not met - OVERRIDES EVERYTHING (even good grades)
+        will_transition = False
+        probability = 0.05
+        failure_reasons.append(duration_reason)
+    elif final_grade_fail:
+        # Final grade failure - cannot transition
+        will_transition = False
+        probability = 0.10
+        failure_reasons.append("Final Grade is 'Fail'")
+    elif low_scores:
+        # Low scores but no fail - can transition with low probability
+        will_transition = True
+        probability = 0.25  # Low but possible transition
+        failure_reasons.append(f"Low performance in: {', '.join(low_scores)} (below 70)")
+    else:
+        # All business rules pass - use ML model
+        input_df = pd.DataFrame([input_data], columns=top_features)
+        
+        # Encode categorical features
+        for col in form_categorical_features:
+            if col in input_df.columns and col in cat_to_encoder_idx:
+                idx = cat_to_encoder_idx[col]
+                input_df[col] = encoders[idx].transform(input_df[col].astype(str))
+        
+        # Reorder columns to match scaler's expected order
+        scaler_feature_order = scaler.feature_names_in_.tolist()
+        input_df_scaled = input_df[scaler_feature_order]
+        
+        # Scale all features
+        input_df_scaled = pd.DataFrame(scaler.transform(input_df_scaled), columns=scaler_feature_order)
+        
+        # Reorder back to top_features order for model
+        input_df = input_df_scaled[top_features]
+        
+        # Use ML model prediction
+        pred_prob = model.predict_proba(input_df)[:, 1][0]
+        pred = model.predict(input_df)[0]
+        probability = round(pred_prob, 4)
+        will_transition = pred == 1
     
     return render_template(
         "result.html",
         will_transition=will_transition,
-        probability=probability
+        probability=probability,
+        failure_reasons=failure_reasons if 'failure_reasons' in locals() else [],
+        low_scores=low_scores if 'low_scores' in locals() else [],
+        final_grade_fail=final_grade_fail if 'final_grade_fail' in locals() else False,
+        duration_fail=duration_fail if 'duration_fail' in locals() else False
     )
 
 
