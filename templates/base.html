@@ -37,11 +37,21 @@
         padding: 0 30px;
       }
       .logo {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        padding: 10px 0;
+      }
+      .logo img {
+        height: 50px;
+        width: auto;
+        margin-right: 10px;
+        border-radius: 8px;
+      }
+      .logo-text {
         color: white;
         font-size: 1.8em;
         font-weight: 700;
-        text-decoration: none;
-        padding: 20px 0;
       }
       .nav-links {
         display: flex;
@@ -95,8 +105,11 @@
         .nav-container {
           padding: 0 20px;
         }
-        .logo {
+        .logo-text {
           font-size: 1.5em;
+        }
+        .logo img {
+          height: 40px;
         }
         .mobile-menu-btn {
           display: block;
@@ -147,7 +160,10 @@
   <body>
     <nav class="navbar">
       <div class="nav-container">
-        <a href="/" class="logo">🏥 CarePredict</a>
+        <a href="/" class="logo">
+          <img src="{{ url_for('static', filename='logo.JPG') }}" alt="CarePredict Logo">
+          <span class="logo-text">CarePredict</span>
+        </a>
         <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
         <ul class="nav-links" id="navLinks">
           <li>
