@@ -3,10 +3,11 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', message='.*version.*')
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import pickle
 import pandas as pd
 import numpy as np
+import json
 
 app = Flask(__name__)
 
@@ -35,7 +36,16 @@ cat_to_encoder_idx = {
     'Final Grade': 9
 }
 
+# Load counties data
+with open("kenyan_counties.json", "r") as f:
+    counties_data = json.load(f)
+
+# Create county-subcounty mapping
+county_subcounty_map = {county['name']: county['sub_counties'] for county in counties_data}
+
+# Update categorical values to use counties from JSON
 categorical_values = {feat: encoders[idx].classes_.tolist() for feat, idx in cat_to_encoder_idx.items()}
+categorical_values['County'] = list(county_subcounty_map.keys())
 
 # Create ordered features list with type information
 features_info = [
@@ -59,8 +69,14 @@ def predict_form():
     return render_template(
         "predict.html",
         features_info=features_info,
-        categorical_values=categorical_values
+        categorical_values=categorical_values,
+        county_subcounty_map=county_subcounty_map
     )
+
+@app.route("/get_subcounties/<county>")
+def get_subcounties(county):
+    subcounties = county_subcounty_map.get(county, [])
+    return jsonify(subcounties)
 
 @app.route("/result", methods=["POST"])
 def result():

@@ -185,6 +185,29 @@
       allowClear: true,
       width: "100%",
     });
+    
+    // Handle county change to update subcounties
+    $('#County').on('change', function() {
+      const selectedCounty = $(this).val();
+      const subCountySelect = $('#Sub_County');
+      
+      // Clear subcounty dropdown
+      subCountySelect.empty().append('<option value="">Select Sub County</option>');
+      
+      if (selectedCounty) {
+        // Fetch subcounties for selected county
+        fetch(`/get_subcounties/${selectedCounty}`)
+          .then(response => response.json())
+          .then(subcounties => {
+            subcounties.forEach(subcounty => {
+              subCountySelect.append(`<option value="${subcounty}">${subcounty}</option>`);
+            });
+            // Refresh Select2
+            subCountySelect.trigger('change');
+          })
+          .catch(error => console.error('Error:', error));
+      }
+    });
   });
 </script>
 {% endblock %}
