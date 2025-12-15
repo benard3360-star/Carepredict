@@ -78,6 +78,28 @@ def get_subcounties(county):
     subcounties = county_subcounty_map.get(county, [])
     return jsonify(subcounties)
 
+@app.route("/chat", methods=["POST"])
+def chat():
+    user_message = request.json.get('message', '').lower()
+    
+    # Simple AI responses based on keywords
+    if 'predict' in user_message or 'prediction' in user_message:
+        response = "To make a prediction, fill out all the form fields including your course, grades, and location details. The system will analyze your data and provide a care transition likelihood."
+    elif 'score' in user_message or 'grade' in user_message:
+        response = "Scores below 70 in any assessment may result in lower transition probability. A 'Fail' grade automatically results in 'Likely not to transition'."
+    elif 'duration' in user_message or 'months' in user_message:
+        response = "Minimum training duration: Childcare requires 2+ months, Eldercare requires 3+ months. Not meeting these requirements results in 'Likely not to transition'."
+    elif 'county' in user_message or 'location' in user_message:
+        response = "Select your county first, then the subcounty dropdown will automatically populate with relevant options for your area."
+    elif 'course' in user_message:
+        response = "Choose between Childcare or Eldercare courses. Each has different minimum duration requirements for successful transition."
+    elif 'help' in user_message or 'how' in user_message:
+        response = "I can help you understand the prediction form, scoring requirements, duration rules, and location selection. What specific question do you have?"
+    else:
+        response = "I'm here to help with the Care Transition Prediction system. Ask me about form fields, scoring requirements, duration rules, or how predictions work!"
+    
+    return jsonify({'response': response})
+
 @app.route("/result", methods=["POST"])
 def result():
     input_data = {}

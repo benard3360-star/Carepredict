@@ -132,6 +132,91 @@
   .submit-btn:active {
     transform: translateY(-1px);
   }
+  
+  /* Chatbot Styles */
+  .chatbot-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+  }
+  .chat-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
+  }
+  .chat-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+  }
+  .chat-window {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 350px;
+    height: 400px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+  }
+  .chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 15px 15px 0 0;
+    font-weight: 600;
+  }
+  .chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    max-height: 280px;
+  }
+  .message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 80%;
+  }
+  .user-message {
+    background: #e3f2fd;
+    margin-left: auto;
+    text-align: right;
+  }
+  .bot-message {
+    background: #f5f5f5;
+    margin-right: auto;
+  }
+  .chat-input {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #eee;
+  }
+  .chat-input input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+  }
+  .chat-input button {
+    margin-left: 8px;
+    padding: 8px 15px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="predict-container">
@@ -175,6 +260,27 @@
     </form>
   </div>
 </div>
+
+<!-- Chatbot Widget -->
+<div class="chatbot-widget">
+  <button class="chat-button" onclick="toggleChat()" title="Ask AI">
+    💬
+  </button>
+  <div class="chat-window" id="chatWindow">
+    <div class="chat-header">
+      💬 Ask AI - CarePredict Helper
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot-message">
+        Hi! I'm here to help you with the Care Transition Prediction form. Ask me anything!
+      </div>
+    </div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Type your question..." onkeypress="handleKeyPress(event)">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
 {% endblock %} {% block extra_js %}
 <script>
   $(document).ready(function () {
@@ -209,5 +315,53 @@
       }
     });
   });
+  
+  // Chatbot Functions
+  function toggleChat() {
+    const chatWindow = document.getElementById('chatWindow');
+    chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+  }
+  
+  function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+      sendMessage();
+    }
+  }
+  
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message
+    addMessage(message, 'user');
+    input.value = '';
+    
+    // Send to backend
+    fetch('/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+      addMessage(data.response, 'bot');
+    })
+    .catch(error => {
+      addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+    });
+  }
+  
+  function addMessage(text, sender) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}-message`;
+    messageDiv.textContent = text;
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
 </script>
 {% endblock %}
