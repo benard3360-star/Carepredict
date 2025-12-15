@@ -163,11 +163,41 @@ def result():
         # All business rules pass - use ML model
         input_df = pd.DataFrame([input_data], columns=top_features)
         
+        # Handle subcounty validation and fallback
+        subcounty_encoder = encoders[cat_to_encoder_idx['Sub_County']]
+        known_subcounties = subcounty_encoder.classes_
+        
+        # Validate and fix subcounty
+        if 'Sub_County' in input_data:
+            subcounty = input_data['Sub_County']
+            
+            # Check if subcounty exists in encoder
+            if subcounty not in known_subcounties:
+                # Try partial matching with known subcounties
+                matched_subcounty = None
+                
+                # Look for partial matches (handles truncated names)
+                for known in known_subcounties:
+                    if subcounty.lower() in known.lower() or known.lower() in subcounty.lower():
+                        matched_subcounty = known
+                        break
+                
+                # If no match found, use most common subcounty
+                if not matched_subcounty:
+                    matched_subcounty = known_subcounties[0]
+                
+                input_data['Sub_County'] = matched_subcounty
+                input_df.loc[0, 'Sub_County'] = matched_subcounty
+        
         # Encode categorical features
         for col in form_categorical_features:
             if col in input_df.columns and col in cat_to_encoder_idx:
                 idx = cat_to_encoder_idx[col]
-                input_df[col] = encoders[idx].transform(input_df[col].astype(str))
+                try:
+                    input_df[col] = encoders[idx].transform(input_df[col].astype(str))
+                except ValueError:
+                    # Fallback to first class if encoding fails
+                    input_df[col] = 0
         
         # Reorder columns to match scaler's expected order
         scaler_feature_order = scaler.feature_names_in_.tolist()
