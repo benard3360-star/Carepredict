@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% block extra_css %}
 <style>
   .predict-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     background: white;
     border-radius: 24px;
@@ -40,24 +40,42 @@
     z-index: 1;
   }
   .form-container {
-    padding: 60px;
+    padding: 80px;
     background: linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%);
   }
   .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 35px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 40px;
+  }
+  .form-section {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    border: 2px solid #f1f5f9;
+  }
+  .section-title {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #667eea;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
   .form-group {
     display: flex;
     flex-direction: column;
     position: relative;
+    margin-bottom: 25px;
   }
   .form-group label {
     font-weight: 700;
     margin-bottom: 12px;
     color: #2d3748;
-    font-size: 1.2em;
+    font-size: 1.1em;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -110,20 +128,19 @@
     font-size: 1.1em !important;
   }
   .submit-btn {
-    grid-column: 1 / -1;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px 50px;
+    padding: 25px 60px;
     border: none;
     border-radius: 12px;
-    font-size: 1.4em;
+    font-size: 1.5em;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 30px;
     text-transform: uppercase;
     letter-spacing: 1px;
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    min-width: 300px;
   }
   .submit-btn:hover {
     transform: translateY(-3px);
@@ -228,33 +245,98 @@
   <div class="form-container">
     <form method="POST" action="/result">
       <div class="form-grid">
-        {% for feature in features_info %}
-        <div class="form-group">
-          <label for="{{ feature.name }}">{{ feature.name }}</label>
-          {% if feature.type == 'categorical' %}
-          <select
-            name="{{ feature.name }}"
-            id="{{ feature.name }}"
-            class="searchable-select"
-            required
-          >
-            <option value="">Select {{ feature.name }}</option>
-            {% for val in categorical_values[feature.name] %}
-            <option value="{{ val }}">{{ val }}</option>
-            {% endfor %}
-          </select>
-          {% else %}
-          <input
-            type="number"
-            step="any"
-            name="{{ feature.name }}"
-            id="{{ feature.name }}"
-            placeholder="Enter {{ feature.name }}"
-            required
-          />
-          {% endif %}
+        <!-- Personal Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">Personal Information</h3>
+          
+          <div class="form-group">
+            <label for="Gender">Gender</label>
+            <select name="Gender" id="Gender" class="searchable-select" required>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="Age">Age (years)</label>
+            <input type="number" name="Age" id="Age" placeholder="Enter Age" min="0" max="100" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="Height">Height (cm)</label>
+            <input type="number" name="Height" id="Height" placeholder="Enter Height in cm" min="100" max="250" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="Weight">Weight (kg)</label>
+            <input type="number" name="Weight" id="Weight" placeholder="Enter Weight in kg" min="30" max="200" required />
+          </div>
         </div>
-        {% endfor %}
+        
+        <!-- Course Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">Course Information</h3>
+          
+          {% for feature in features_info %}
+          {% if feature.name == 'Course' or feature.name == 'Course Duration Months' or feature.name == 'Final Grade' %}
+          <div class="form-group">
+            <label for="{{ feature.name }}">{{ feature.name }}</label>
+            {% if feature.type == 'categorical' %}
+            <select name="{{ feature.name }}" id="{{ feature.name }}" class="searchable-select" required>
+              <option value="">Select {{ feature.name }}</option>
+              {% for val in categorical_values[feature.name] %}
+              <option value="{{ val }}">{{ val }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <input type="number" step="any" name="{{ feature.name }}" id="{{ feature.name }}" placeholder="Enter {{ feature.name }}" required />
+            {% endif %}
+          </div>
+          {% endif %}
+          {% endfor %}
+          
+          <div class="form-group" id="patientWeightGroup" style="display: none;">
+            <label for="PatientWeight">Patient Weight (kg)</label>
+            <input type="number" name="PatientWeight" id="PatientWeight" placeholder="Enter Patient Weight in kg" min="30" max="200" />
+          </div>
+        </div>
+        
+        <!-- Location Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">Location Information</h3>
+          
+          {% for feature in features_info %}
+          {% if feature.name == 'County' or feature.name == 'Sub_County' or feature.name == 'Location' %}
+          <div class="form-group">
+            <label for="{{ feature.name }}">{{ feature.name }}</label>
+            <select name="{{ feature.name }}" id="{{ feature.name }}" class="searchable-select" required>
+              <option value="">Select {{ feature.name }}</option>
+              {% for val in categorical_values[feature.name] %}
+              <option value="{{ val }}">{{ val }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        
+        <!-- Academic Performance Section -->
+        <div class="form-section">
+          <h3 class="section-title">Academic Performance</h3>
+          
+          {% for feature in features_info %}
+          {% if feature.name not in ['Course', 'Course Duration Months', 'Final Grade', 'County', 'Sub_County', 'Location'] %}
+          <div class="form-group">
+            <label for="{{ feature.name }}">{{ feature.name }}</label>
+            <input type="number" step="any" name="{{ feature.name }}" id="{{ feature.name }}" placeholder="Enter {{ feature.name }}" required />
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 50px;">
         <button type="submit" class="submit-btn">🔮 Predict Transition</button>
       </div>
     </form>
@@ -292,6 +374,13 @@
       width: "100%",
     });
     
+    // Initialize Gender dropdown with Select2
+    $('#Gender').select2({
+      placeholder: 'Select Gender',
+      allowClear: true,
+      width: '100%'
+    });
+    
     // Handle county change to update subcounties
     $('#County').on('change', function() {
       const selectedCounty = $(this).val();
@@ -312,6 +401,22 @@
             subCountySelect.trigger('change');
           })
           .catch(error => console.error('Error:', error));
+      }
+    });
+    
+    // Handle course change to show/hide Patient Weight field
+    $('#Course').on('change', function() {
+      const selectedCourse = $(this).val();
+      const patientWeightGroup = $('#patientWeightGroup');
+      const patientWeightInput = $('#PatientWeight');
+      
+      if (selectedCourse === 'Eldercare') {
+        patientWeightGroup.show();
+        patientWeightInput.prop('required', true);
+      } else {
+        patientWeightGroup.hide();
+        patientWeightInput.prop('required', false);
+        patientWeightInput.val('');
       }
     });
   });

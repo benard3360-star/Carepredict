@@ -84,7 +84,15 @@ def chat():
     
     # Simple AI responses based on keywords
     if 'predict' in user_message or 'prediction' in user_message:
-        response = "To make a prediction, fill out all the form fields including your course, grades, and location details. The system will analyze your data and provide a care transition likelihood."
+        response = "To make a prediction, fill out all the form fields including your gender, age, height, weight, course, grades, and location details. The system will analyze your data and provide a care transition likelihood."
+    elif 'age' in user_message:
+        response = "Age requirements: Students under 18 cannot transition. Optimal ages are 26-37 years. Age brackets: 0-17 (not eligible), 18-25 (reduced probability), 26-30 (boosted), 31-37 (good), 38-45 (stable), 46-60 (slight reduction)."
+    elif 'weight' in user_message or 'height' in user_message:
+        response = "Physical requirements: For Eldercare, minimum 45kg weight required. If patient weight exceeds caregiver weight by 15kg or more, assignment is not possible. Height ≥160cm and weight ≥55kg provide better transition probability."
+    elif 'patient' in user_message:
+        response = "Patient Weight field appears only for Eldercare courses. Caregivers must not exceed a 15kg weight difference below their assigned patients to ensure safe patient handling and transfers."
+    elif 'gender' in user_message:
+        response = "Gender affects transition probability: Male students typically have lower transition rates, while Female students with good performance have higher transition chances."
     elif 'score' in user_message or 'grade' in user_message:
         response = "Scores below 70 in any assessment may result in lower transition probability. A 'Fail' grade automatically results in 'Likely not to transition'."
     elif 'duration' in user_message or 'months' in user_message:
@@ -92,11 +100,11 @@ def chat():
     elif 'county' in user_message or 'location' in user_message:
         response = "Select your county first, then the subcounty dropdown will automatically populate with relevant options for your area."
     elif 'course' in user_message:
-        response = "Choose between Childcare or Eldercare courses. Each has different minimum duration requirements for successful transition."
+        response = "Choose between Childcare or Eldercare courses. Eldercare has additional physical requirements including patient weight considerations. Each has different minimum duration requirements."
     elif 'help' in user_message or 'how' in user_message:
-        response = "I can help you understand the prediction form, scoring requirements, duration rules, and location selection. What specific question do you have?"
+        response = "I can help you understand the prediction form, age requirements, physical attributes, gender factors, scoring requirements, duration rules, and location selection. What specific question do you have?"
     else:
-        response = "I'm here to help with the Care Transition Prediction system. Ask me about form fields, scoring requirements, duration rules, or how predictions work!"
+        response = "I'm here to help with the Care Transition Prediction system. Ask me about form fields, age/weight requirements, gender factors, scoring requirements, duration rules, or how predictions work!"
     
     return jsonify({'response': response})
 
@@ -109,6 +117,13 @@ def result():
             input_data[feat] = val if val else ""
         else:
             input_data[feat] = float(val) if val else 0.0
+    
+    # Get additional form data
+    gender = request.form.get('Gender', '')
+    age = int(request.form.get('Age', 0))
+    height = float(request.form.get('Height', 0))
+    weight = float(request.form.get('Weight', 0))
+    patient_weight = float(request.form.get('PatientWeight', 0)) if request.form.get('PatientWeight') else 0
     
     # Business Rules - Check BEFORE encoding (use original string values)
     score_features = ['Final Score', 'Practical-Icare', 'Average Attendance', 
@@ -139,6 +154,24 @@ def result():
         duration_fail = True
         duration_reason = "The minimum training time for Eldercare course is 3 months, which was not met with the caregiver"
     
+    # Physical attributes validation
+    physical_fail = False
+    physical_reasons = []
+    
+    # Age bracket validation
+    if age <= 17:
+        physical_fail = True
+        physical_reasons.append("Age requirement not met: Students under 18 years cannot transition to caregiving roles")
+    
+    # Weight validation for Eldercare
+    if course == 'Eldercare':
+        if weight < 45:
+            physical_fail = True
+            physical_reasons.append("Weight requirement not met: Minimum 45kg required for Eldercare")
+        elif patient_weight > 0 and (patient_weight - weight) >= 15:
+            physical_fail = True
+            physical_reasons.append("The patient weight is higher than the caregiver weight threshold, find another caregiver for the patient")
+    
     # Initialize reasons list
     failure_reasons = []
     
@@ -149,6 +182,11 @@ def result():
         will_transition = False
         probability = 0.05
         failure_reasons.append(duration_reason)
+    elif physical_fail:
+        # Physical requirements not met - SECOND HIGHEST PRIORITY
+        will_transition = False
+        probability = 0.08
+        failure_reasons.extend(physical_reasons)
     elif final_grade_fail:
         # Final grade failure - cannot transition
         will_transition = False
@@ -214,6 +252,38 @@ def result():
         pred = model.predict(input_df)[0]
         probability = round(pred_prob, 4)
         will_transition = pred == 1
+        
+        # Apply Gender business rule AFTER ML prediction
+        if gender == 'Male':
+            # Male students get low probability
+            probability = min(probability * 0.3, 0.25)  # Reduce probability significantly
+            will_transition = False
+            failure_reasons.append("Gender factor: Male students have lower transition probability")
+        elif gender == 'Female' and will_transition:
+            # Female students with good conditions get higher probability
+            probability = min(probability * 1.2, 0.95)  # Boost probability but cap at 95%
+        
+        # Apply physical attributes adjustments for successful candidates
+        if will_transition:
+            # Age-based adjustments
+            if 18 <= age <= 25:
+                probability *= 0.9  # Slight reduction for younger adults
+            elif 26 <= age <= 30:
+                probability *= 1.1  # Boost for prime age
+            elif 31 <= age <= 37:
+                probability *= 1.05  # Good experience age
+            elif 38 <= age <= 45:
+                probability *= 1.0  # Stable
+            elif 46 <= age <= 60:
+                probability *= 0.95  # Slight reduction for older age
+            
+            # Height and weight considerations for better patient handling
+            if height >= 160 and weight >= 55:
+                probability *= 1.05  # Better physical capability
+            elif height < 150 or weight < 50:
+                probability *= 0.9  # May have challenges with patient handling
+            
+            probability = min(probability, 0.95)  # Cap at 95%
     
     return render_template(
         "result.html",
